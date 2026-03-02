@@ -204,6 +204,33 @@ th, td { border-bottom: 1px solid #1f2a3a; padding: 8px; text-align: left; }
 "@
 }
 
+
+
+function Protect-AuditObject {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        $AuditObject
+    )
+
+    # clone via JSON so we don't mutate original
+    $clone = $AuditObject | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+
+    if ($clone.System) {
+        $clone.System.ComputerName = "[REDACTED]"
+        $clone.System.UserName     = "[REDACTED]"
+    }
+
+    if ($clone.Network -and $clone.Network.IPAddresses) {
+        foreach ($ip in $clone.Network.IPAddresses) { $ip.IPAddress = "[REDACTED]" }
+    }
+    if ($clone.Network -and $clone.Network.DNSServers) {
+        foreach ($dns in $clone.Network.DNSServers) { $dns.ServerAddresses = @("[REDACTED]") }
+    }
+
+    return $clone
+}
 Export-ModuleMember -Function `
     Get-SystemSummary, Get-DiskSummary, Get-TopProcesses, Get-NetworkSummary, Get-SecuritySummary, Get-EventErrors, `
-    New-AuditObject, ConvertTo-AuditHtml
+    New-AuditObject, ConvertTo-AuditHtml, Protect-AuditObject
+
